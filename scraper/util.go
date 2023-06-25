@@ -2,7 +2,6 @@ package scraper
 
 import (
 	"context"
-	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -14,34 +13,6 @@ import (
 func FetchDataFromPage(ctx context.Context, url string, tasks ...chromedp.Action) error {
 	tasks = append([]chromedp.Action{chromedp.Navigate(url)}, tasks...)
 	return chromedp.Run(ctx, tasks...)
-}
-
-func GetLastPage() int {
-	ctx, cancel := CreateChromedpInstance()
-	defer cancel()
-
-	// The URL to visit
-	url := "https://www.halooglasi.com/nekretnine/izdavanje-stanova/beograd"
-
-	var result string
-	actions := []chromedp.Action{
-		chromedp.WaitVisible(`div.light-theme.simple-pagination`),
-		chromedp.Text(`div.light-theme.simple-pagination li.disabled + li a.page-link`, &result, chromedp.ByQuery),
-	}
-
-	if err := FetchDataFromPage(ctx, url, actions...); err != nil {
-		logger.Errorf("error fetching data from page %s", err.Error())
-
-	}
-	// Clean up the result to get the page number
-	result = strings.TrimSpace(result)
-	lastPage, err := strconv.Atoi(result)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return lastPage
 }
 
 func CreateChromedpInstance() (context.Context, context.CancelFunc) {
