@@ -6,5 +6,5 @@ import "github.com/gofiber/fiber/v2"
 
 type Scraper interface {
 	ScrapelLinks(*fiber.Ctx)
-	ScrapelBody(string, *fiber.Ctx)
+	ScrapelBody(*fiber.Ctx)
 }
