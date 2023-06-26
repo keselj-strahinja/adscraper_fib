@@ -8,8 +8,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
 	"github.com/keselj-strahinja/halo_scraper/api"
+	scraper "github.com/keselj-strahinja/halo_scraper/crawler"
 	"github.com/keselj-strahinja/halo_scraper/db"
-	scraper "github.com/keselj-strahinja/halo_scraper/scraper"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -19,6 +19,7 @@ var config = fiber.Config{
 }
 
 func main() {
+
 	mongoEndpoint := os.Getenv("MONGO_DB_URL")
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(mongoEndpoint))
 	if err != nil {

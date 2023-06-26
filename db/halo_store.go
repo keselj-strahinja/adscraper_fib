@@ -5,6 +5,7 @@ import (
 	"log"
 
 	models "github.com/keselj-strahinja/halo_scraper/type_models"
+	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -16,7 +17,7 @@ type HaloStore interface {
 	GetApartmant(context.Context, string) (*models.Apartment, error)
 	SetAllInactive(context.Context) error
 	SetActive(context.Context, string) error
-	SetScraped(context.Context, string) error
+	SetScraped(context.Context, string, bool) error
 	GetUnscrapedURLs(context.Context) ([]string, error)
 	UpdateListing(context.Context, *models.Apartment) error
 }
@@ -109,13 +110,13 @@ func (h *MongoHaloStore) SetActive(ctx context.Context, url string) error {
 	return err
 }
 
-func (h *MongoHaloStore) SetScraped(ctx context.Context, url string) error {
+func (h *MongoHaloStore) SetScraped(ctx context.Context, url string, scraped bool) error {
 	// Create a filter that matches the specific document with the given URL
 	filter := bson.M{"url": url}
 
 	// Create an update that sets "active" to true for the matched document
 	update := bson.M{
-		"$set": bson.M{"scraped": true},
+		"$set": bson.M{"scraped": scraped},
 	}
 
 	// Update the document
@@ -153,6 +154,7 @@ func (h *MongoHaloStore) GetUnscrapedURLs(ctx context.Context) ([]string, error)
 }
 
 func (h *MongoHaloStore) UpdateListing(ctx context.Context, a *models.Apartment) error {
+	logrus.Info("Updating listing")
 	filter := bson.M{"_id": a.ID}
 	update := bson.M{
 		"$set": bson.M{

@@ -61,7 +61,6 @@ func getLastPage() int {
 	return lastPage
 }
 func (h *HaloScraper) ScrapelLinks(fctx *fiber.Ctx) error {
-
 	logger.Info("Setting all apartments to inactive")
 
 	h.store.SetAllInactive(context.Background())
@@ -75,7 +74,7 @@ func (h *HaloScraper) ScrapelLinks(fctx *fiber.Ctx) error {
 	c.Limit(&colly.LimitRule{DomainGlob: "*", Parallelism: 10, RandomDelay: 5 * time.Second})
 
 	baseUrl := "https://www.halooglasi.com/nekretnine/izdavanje-stanova/beograd"
-	//numPages := getLastPage()
+	numPages := getLastPage()
 
 	c.OnHTML("div.product-item", func(e *colly.HTMLElement) {
 		URL := e.Request.AbsoluteURL(e.ChildAttr("h3.product-title a", "href"))
@@ -125,7 +124,7 @@ func (h *HaloScraper) ScrapelLinks(fctx *fiber.Ctx) error {
 		return nil
 	}
 
-	for i := 1; i <= 0; i++ {
+	for i := 1; i <= numPages; i++ {
 		url := fmt.Sprintf("%s?page=%d", baseUrl, i)
 		err := c.Visit(url)
 		if err != nil {
@@ -152,6 +151,7 @@ func (h *HaloScraper) ScrapeBody(fctx *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
+	logger.WithField("UNSCRAPED URLS COUND", len(urls)).Info("Sending to workers")
 	h.wg.Add(len(urls))
 
 	// Start the workers
@@ -179,6 +179,7 @@ func (h *HaloScraper) ScrapeBody(fctx *fiber.Ctx) error {
 
 func (h *HaloScraper) worker(jobs <-chan string, fctx *fiber.Ctx) {
 	for url := range jobs {
+
 		logger.WithField("url", url).Info("Starting scraping for URL")
 		delay := time.Duration(5+rand.Intn(6)) * time.Second
 		time.Sleep(delay)
@@ -187,18 +188,21 @@ func (h *HaloScraper) worker(jobs <-chan string, fctx *fiber.Ctx) {
 		if err != nil {
 			logger.WithField("url", url).Errorf("Error scraping page: %v", err)
 
-			// decide what to do in case of error
+			h.store.SetScraped(context.Background(), url, false)
+
+			continue
 		}
 
 		// Mark the page as scraped in the database
-		err = h.store.SetScraped(context.Background(), url)
+		err = h.store.SetScraped(context.Background(), url, true)
 		if err != nil {
 			logger.WithField("url", url).Errorf("Error marking page as scraped: %v", err)
 		}
 
 		logger.WithField("url", url).Info("Finished scraping for URL")
 
-		h.wg.Done()
+		defer h.wg.Done()
+
 	}
 }
 
@@ -220,14 +224,15 @@ func (h *HaloScraper) scrapeSinglePage(url string, fctx *fiber.Ctx) error {
 	)
 	ctx, cancel := CreateChromedpInstance()
 	defer cancel()
-
+	// TODO maybe make it so the fetch data func gets the selector and action with which it auto creates
+	// the chromedp run
 	waitBodyAction := chromedp.WaitVisible(body, chromedp.ByQuery)
 	clickButtonAction := chromedp.Click(clickButtonSelector)
 	phoneNumberWaitAction := chromedp.WaitVisible(phoneSelector, chromedp.BySearch)
 	phoneNumberAction := chromedp.TextContent(phoneSelector, &phoneNumberString, chromedp.AtLeast(0))
 	postingDateAction := chromedp.Text(publishSelector, &postingDateString, chromedp.NodeVisible, chromedp.ByQuery)
 	contactNameAction := chromedp.Text(contactSelector, &contactName, chromedp.NodeVisible, chromedp.ByQuery)
-	outerHtmlAction := chromedp.Text(htmlSelector, &html, chromedp.ByQuery)
+	outerHtmlAction := chromedp.OuterHTML(htmlSelector, &html, chromedp.ByQuery)
 
 	actions := []chromedp.Action{
 		waitBodyAction,
@@ -240,14 +245,15 @@ func (h *HaloScraper) scrapeSinglePage(url string, fctx *fiber.Ctx) error {
 	}
 
 	if err := FetchDataFromPage(ctx, url, actions...); err != nil {
-		logger.Errorf("error fetching data from page %s", err.Error())
+		logger.Errorf("error fetching data from page %s url: %s", err.Error(), url)
+		return err
 
 	}
-
 	c := colly.NewCollector(
 		colly.AllowURLRevisit(),
 		colly.MaxDepth(2),
 	)
+
 	apartment, err := h.store.GetApartmant(context.Background(), url)
 	if err != nil {
 		logger.Errorf("there was an error while trying to get the Apt from the database %s", err.Error())
@@ -375,7 +381,7 @@ func (h *HaloScraper) scrapeSinglePage(url string, fctx *fiber.Ctx) error {
 	})
 
 	c.OnScraped(func(r *colly.Response) {
-		logger.WithField("url", r.Request.URL.String()).Info("Finished Scraping")
+
 	})
 
 	c.OnResponse(func(r *colly.Response) {
