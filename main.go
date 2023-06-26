@@ -8,8 +8,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
 	"github.com/keselj-strahinja/halo_scraper/api"
-	scraper "github.com/keselj-strahinja/halo_scraper/crawler"
 	"github.com/keselj-strahinja/halo_scraper/db"
+	scraper "github.com/keselj-strahinja/halo_scraper/scraper"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
