@@ -15,6 +15,7 @@ type HaloStore interface {
 	InsertListing(context.Context, *models.Apartment) (*models.Apartment, error)
 	URLExists(context.Context, string) (bool, error)
 	GetApartmant(context.Context, string) (*models.Apartment, error)
+	GetActiveListings(context.Context, bson.M) ([]*models.Apartment, error)
 	SetAllInactive(context.Context) error
 	SetActive(context.Context, string) error
 	SetScraped(context.Context, string, bool) error
@@ -61,6 +62,18 @@ func (h *MongoHaloStore) URLExists(ctx context.Context, url string) (bool, error
 	}
 	// The URL exists in the database.
 	return true, nil
+}
+
+func (h *MongoHaloStore) GetActiveListings(ctx context.Context, filter bson.M) ([]*models.Apartment, error) {
+	resp, err := h.col.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	var listings []*models.Apartment
+	if err := resp.All(ctx, &listings); err != nil {
+		return nil, err
+	}
+	return listings, nil
 }
 
 func (h *MongoHaloStore) GetApartmant(ctx context.Context, url string) (*models.Apartment, error) {

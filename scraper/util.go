@@ -25,7 +25,7 @@ func CreateChromedpInstance() (context.Context, context.CancelFunc) {
 	// create chromedp's context
 	parentCtx, cancelParent := chromedp.NewExecAllocator(context.Background(), opts...)
 	ctx, cancelCtx := chromedp.NewContext(parentCtx)
-	timeoutCtx, cancel := context.WithTimeout(ctx, 120*time.Second) // Adjust the time as necessary
+	timeoutCtx, cancel := context.WithTimeout(ctx, 60*time.Second) // Adjust the time as necessary
 	return timeoutCtx, func() {
 		cancelCtx()
 		cancelParent()

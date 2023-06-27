@@ -151,7 +151,7 @@ func (h *HaloScraper) ScrapeBody(fctx *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	logger.WithField("UNSCRAPED URLS COUND", len(urls)).Info("Sending to workers")
+	logger.WithField("UNSCRAPED URLS COUNT!", len(urls)).Info("Sending to workers")
 	h.wg.Add(len(urls))
 
 	// Start the workers
@@ -171,15 +171,17 @@ func (h *HaloScraper) ScrapeBody(fctx *fiber.Ctx) error {
 	// Close the jobs channel
 	close(jobs)
 
-	// Wait until all the workers have finished
 	h.wg.Wait()
 
-	return nil
+	return fctx.Status(200).JSON(fiber.Map{
+		"status":  "success",
+		"message": "Scraping finished",
+	})
 }
 
 func (h *HaloScraper) worker(jobs <-chan string, fctx *fiber.Ctx) {
 	for url := range jobs {
-
+		defer h.wg.Done()
 		logger.WithField("url", url).Info("Starting scraping for URL")
 		delay := time.Duration(5+rand.Intn(6)) * time.Second
 		time.Sleep(delay)
@@ -200,8 +202,6 @@ func (h *HaloScraper) worker(jobs <-chan string, fctx *fiber.Ctx) {
 		}
 
 		logger.WithField("url", url).Info("Finished scraping for URL")
-
-		defer h.wg.Done()
 
 	}
 }

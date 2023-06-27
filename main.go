@@ -33,7 +33,7 @@ func main() {
 		haloScraper = scraper.NewHaloScraper(haloStore)
 	)
 
-	apiv1.Get("/halo", haloHandler.HandlePostUser)
+	apiv1.Get("/halo", haloHandler.HandleGetActiveListings)
 	apiv1.Get("/scrapeHaloLinks", haloScraper.ScrapelLinks)
 	listenAddr := os.Getenv("HTTP_LISTEN_ADDRESS")
 

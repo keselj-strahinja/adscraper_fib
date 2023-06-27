@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/keselj-strahinja/halo_scraper/db"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 type HaloHandler struct {
@@ -15,8 +16,15 @@ func NewHaloHandler(haloStore db.HaloStore) *HaloHandler {
 	}
 }
 
-func (h *HaloHandler) HandlePostUser(c *fiber.Ctx) error {
+func (h *HaloHandler) HandleGetActiveListings(c *fiber.Ctx) error {
+	listings, err := h.store.GetActiveListings(c.Context(), bson.M{
+		"active": true,
+	})
 
-	return nil
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(listings)
 
 }
