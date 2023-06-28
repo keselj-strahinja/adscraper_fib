@@ -9,7 +9,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/keselj-strahinja/halo_scraper/api"
 	"github.com/keselj-strahinja/halo_scraper/db"
-	scraper "github.com/keselj-strahinja/halo_scraper/scraper"
+	halo "github.com/keselj-strahinja/halo_scraper/scraper/halo"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -20,21 +20,28 @@ var config = fiber.Config{
 
 func main() {
 
+
 	mongoEndpoint := os.Getenv("MONGO_DB_URL")
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(mongoEndpoint))
 	if err != nil {
 		log.Fatal(err)
 	}
-	var (
+	var (	
+		baseUrl = os.Getenv("BASE_URL")
 		app         = fiber.New(config)
 		apiv1       = app.Group("/api/v1")
 		haloStore   = db.NewMongoHaloStore(client)
 		haloHandler = api.NewHaloHandler(haloStore)
-		haloScraper = scraper.NewHaloScraper(haloStore)
+		haloScraper = halo.NewHaloScraper(haloStore, baseUrl, 10)
 	)
 
+	
+	
+
 	apiv1.Get("/halo", haloHandler.HandleGetActiveListings)
-	apiv1.Get("/scrapeHaloLinks", haloScraper.ScrapelLinks)
+	apiv1.Get("/scrapeHaloLinks", haloScraper.ScrapeLinks)
+	apiv1.Get("/scrapeHaloBody", haloScraper.ScrapeBody) 
+
 	listenAddr := os.Getenv("HTTP_LISTEN_ADDRESS")
 
 	log.Println("Starting server on", listenAddr)
