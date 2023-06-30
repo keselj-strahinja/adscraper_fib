@@ -9,12 +9,17 @@ import (
 	"github.com/gocolly/colly"
 	"github.com/gofiber/fiber/v2"
 	models "github.com/keselj-strahinja/halo_scraper/type_models"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func (h *HaloScraper) ScrapeLinks(fctx *fiber.Ctx) error {
 	logger.Info("Setting all apartments to inactive")
 
-	h.store.SetAllInactive(context.Background())
+	// set all store s to inactive
+	h.store.UpdateProperty(
+		context.Background(), 
+		bson.M{}, 
+		bson.M{"$set": bson.M{"active": false}})
 
 	c := colly.NewCollector(
 		colly.AllowURLRevisit(),
@@ -24,7 +29,8 @@ func (h *HaloScraper) ScrapeLinks(fctx *fiber.Ctx) error {
 
 	c.Limit(&colly.LimitRule{DomainGlob: "*", Parallelism: 10, RandomDelay: 5 * time.Second})
 
-	numPages := h.getLastPage()
+	//numPages := h.getLastPage()
+	numPages := 0
 
 	c.OnHTML("div.product-item", func(e *colly.HTMLElement) {
 		URL := e.Request.AbsoluteURL(e.ChildAttr("h3.product-title a", "href"))
@@ -34,7 +40,12 @@ func (h *HaloScraper) ScrapeLinks(fctx *fiber.Ctx) error {
 			logger.WithField("url", URL).Errorf("Failed to check if URL exists: %v", err)
 		}
 		if exists {
-			h.store.SetActive(context.Background(), URL)
+			// set as listing active
+			h.store.UpdateProperty(
+				context.Background(),
+				bson.M{"url": URL},
+				bson.M{"$set": bson.M{"active": true}},
+			)
 			return
 		}
 
@@ -85,6 +96,9 @@ func (h *HaloScraper) ScrapeLinks(fctx *fiber.Ctx) error {
 
 	// Wait until threads are finished
 	c.Wait()
-
-	return nil
+	
+	return fctx.Status(200).JSON(fiber.Map{
+		"status":  "success",
+		"message": "Scraping links finished",
+	})
 }

@@ -32,12 +32,8 @@ func main() {
 		apiv1       = app.Group("/api/v1")
 		haloStore   = db.NewMongoHaloStore(client)
 		haloHandler = api.NewHaloHandler(haloStore)
-		haloScraper = halo.NewHaloScraper(haloStore, baseUrl, 10)
+		haloScraper = halo.NewHaloScraper(haloStore, baseUrl, 5)
 	)
-
-	
-	
-
 	apiv1.Get("/halo", haloHandler.HandleGetActiveListings)
 	apiv1.Get("/scrapeHaloLinks", haloScraper.ScrapeLinks)
 	apiv1.Get("/scrapeHaloBody", haloScraper.ScrapeBody) 

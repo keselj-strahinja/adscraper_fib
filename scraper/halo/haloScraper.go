@@ -114,7 +114,7 @@ func (h *HaloScraper) scrapeSinglePage(url string, fctx *fiber.Ctx) error {
 	}
 
 	if err := FetchDataFromPage(ctx, url, actions...); err != nil {
-		logger.Errorf("error fetching data from page %s url: %s", err.Error(), url)
+	
 		return err
 
 	}

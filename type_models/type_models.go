@@ -32,6 +32,7 @@ type Apartment struct {
 	PriceUnit       string             `json:"priceUnit" bson:"priceUnit"`
 	Active          bool               `json:"active" bson:"active"`
 	Scraped         bool               `json:"scraped" bson:"scraped"`
+	Unavailable         bool               `json:"unavailable" bson:"unavailable"`
 
 	ImageURL []string `json:"imageURLS" bson:"imageURLS"`
 }

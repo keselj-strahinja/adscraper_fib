@@ -11,6 +11,7 @@ import (
 
 	"github.com/chromedp/chromedp"
 	"github.com/gofiber/fiber/v2"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 const (
@@ -89,19 +90,37 @@ func (h *HaloScraper) worker(jobs <-chan string, fctx *fiber.Ctx) {
 		err := h.scrapeSinglePage(url, fctx)
 		if err != nil {
 			logger.WithField("url", url).Errorf("Error scraping page: %v", err)
-
-			h.store.SetScraped(context.Background(), url, false)
-
+			logger.Infof("setting url to unavailable. url: %s", url)
+			// TODO this could be better, error handling could be better. Shit works at least.
+			if strings.Contains(err.Error(), "wsURL"){
+				logger.WithField("url", url).Errorf("Error scraping page: %v", err)
+				continue
+			}
+			// set listing to unavailable
+			if err := h.store.UpdateProperty(
+				context.Background(),
+				bson.M{"url": url},
+				bson.M{"$set": bson.M{"unavailable": true}},
+			); err != nil {
+				logger.Error("Failed to set listing as unavailable: ", err)
+			}
 			continue
 		}
 
 		// Mark the page as scraped in the database
-		err = h.store.SetScraped(context.Background(), url, true)
+		err = h.store.UpdateProperty(
+			context.Background(),
+			bson.M{"url": url},
+			bson.M{"$set": bson.M{"scraped": true}},
+		)
 		if err != nil {
-			logger.WithField("url", url).Errorf("Error marking page as scraped: %v", err)
+		//TODO Decide what to do based on the error
+		// e.g., you might want to stop the worker if the database is unreachable
+		// or you might want to skip this URL but continue with others if it's a problem with just this URL
+		// For now, just continue to the next URL
+		continue
 		}
 
 		logger.WithField("url", url).Info("Finished scraping for URL")
-
 	}
 }

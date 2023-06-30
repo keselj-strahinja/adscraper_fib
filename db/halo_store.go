@@ -16,11 +16,9 @@ type HaloStore interface {
 	URLExists(context.Context, string) (bool, error)
 	GetApartmant(context.Context, string) (*models.Apartment, error)
 	GetActiveListings(context.Context, bson.M) ([]*models.Apartment, error)
-	SetAllInactive(context.Context) error
-	SetActive(context.Context, string) error
-	SetScraped(context.Context, string, bool) error
 	GetUnscrapedURLs(context.Context) ([]string, error)
 	UpdateListing(context.Context, *models.Apartment) error
+	UpdateProperty(ctx context.Context, filter bson.M, update bson.M) error
 }
 
 type MongoHaloStore struct {
@@ -92,48 +90,9 @@ func (h *MongoHaloStore) GetApartmant(ctx context.Context, url string) (*models.
 	// The URL exists in the database.
 	return &result, nil
 }
-func (h *MongoHaloStore) SetAllInactive(ctx context.Context) error {
-	// Create a filter that matches all documents
-	filter := bson.M{}
 
-	// Create an update that sets "active" to false for all documents
-	update := bson.M{
-		"$set": bson.M{"active": false},
-	}
-
-	// Update all documents
+func (h *MongoHaloStore) UpdateProperty(ctx context.Context, filter bson.M, update bson.M) error {
 	_, err := h.col.UpdateMany(ctx, filter, update)
-	if err != nil {
-		log.Println("No docs in mongo")
-	}
-	return nil
-}
-
-func (h *MongoHaloStore) SetActive(ctx context.Context, url string) error {
-	// Create a filter that matches the specific document with the given URL
-	filter := bson.M{"url": url}
-
-	// Create an update that sets "active" to true for the matched document
-	update := bson.M{
-		"$set": bson.M{"active": true},
-	}
-
-	// Update the document
-	_, err := h.col.UpdateOne(ctx, filter, update)
-	return err
-}
-
-func (h *MongoHaloStore) SetScraped(ctx context.Context, url string, scraped bool) error {
-	// Create a filter that matches the specific document with the given URL
-	filter := bson.M{"url": url}
-
-	// Create an update that sets "active" to true for the matched document
-	update := bson.M{
-		"$set": bson.M{"scraped": scraped},
-	}
-
-	// Update the document
-	_, err := h.col.UpdateOne(ctx, filter, update)
 	return err
 }
 
@@ -200,6 +159,7 @@ func (h *MongoHaloStore) UpdateListing(ctx context.Context, a *models.Apartment)
 			"scraped":         a.Scraped,
 			"imageURLS":       a.ImageURL,
 			"contactName":     a.ContactName,
+			"unavailable": a.Unavailable,
 		},
 	}
 	_, err := h.col.UpdateOne(ctx, filter, update)
