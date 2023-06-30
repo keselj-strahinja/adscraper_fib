@@ -49,7 +49,7 @@ func (h *HaloScraper) ScrapeBody(fctx *fiber.Ctx) error {
 	h.wg.Add(len(urls))
 
 	// Start the workers
-	for i := 0; i < 10; i++ {
+	for i := 0; i < int(h.numWorkers); i++ {
 		go func(workerID int) {
 			logger.WithField("worker_id", workerID).Info("Starting worker")
 			h.worker(jobs, fctx)

@@ -93,7 +93,7 @@ func (h *HaloScraper) worker(jobs <-chan string, fctx *fiber.Ctx) {
 			logger.Infof("setting url to unavailable. url: %s", url)
 			// TODO this could be better, error handling could be better. Shit works at least.
 			if strings.Contains(err.Error(), "wsURL"){
-				logger.WithField("url", url).Errorf("Error scraping page: %v", err)
+				logger.WithField("url", url).Errorf("Headless chrome container died: %v", err)
 				continue
 			}
 			// set listing to unavailable

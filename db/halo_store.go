@@ -52,13 +52,11 @@ func (h *MongoHaloStore) URLExists(ctx context.Context, url string) (bool, error
 	err := res.Decode(&result)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			// The URL does not exist in the database.
 			return false, nil
 		}
 
 		return false, err
 	}
-	// The URL exists in the database.
 	return true, nil
 }
 
@@ -87,7 +85,6 @@ func (h *MongoHaloStore) GetApartmant(ctx context.Context, url string) (*models.
 
 		return nil, err
 	}
-	// The URL exists in the database.
 	return &result, nil
 }
 
@@ -97,10 +94,8 @@ func (h *MongoHaloStore) UpdateProperty(ctx context.Context, filter bson.M, upda
 }
 
 func (h *MongoHaloStore) GetUnscrapedURLs(ctx context.Context) ([]string, error) {
-	// Define a filter for documents where "scraped" is false
 	filter := bson.M{"scraped": false}
 
-	// Use Find to get a cursor for all matching documents
 	cur, err := h.col.Find(ctx, filter)
 	if err != nil {
 		return nil, err
